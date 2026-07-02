@@ -1,0 +1,4 @@
+sheet.xlsx
+service_account.json
+*.pyc
+__pycache__/
