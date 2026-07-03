@@ -15,7 +15,9 @@ GitHub Actions 自动运行时也是同样的环境变量。
 import json, os, io, sys
 from pathlib import Path
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 HERE = Path(__file__).parent
 XLSX_PATH = HERE / "sheet.xlsx"
@@ -240,7 +242,7 @@ last_date = daily[-1]["date"] if daily else "N/A"
 note = (
     f"数据来自 Google Sheets 四个标签页（每日数据登记 / 数据源 / 留存数据 / xb月计划）；"
     f"「留存数据」按÷100缩写填写，已×100还原；"
-    f"最后更新：{datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}，数据截至 {last_date}。"
+    f"最后更新：{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}，数据截至 {last_date}。"
 )
 
 out = {
