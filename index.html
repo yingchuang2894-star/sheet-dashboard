@@ -9,6 +9,7 @@
   :root{
     --bg:#0f1420; --card:#171d2c; --card2:#1d2438; --line:#2a3147;
     --text:#e8ecf4; --sub:#8b93a7; --accent:#4f8cff; --good:#3ddc97; --bad:#ff6868; --warn:#ffb347;
+    --t100:#4f8cff; --t200:#3ddc97; --t300:#ffb347; --t500:#b07cff; --coin:#ffd166;
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:"Segoe UI",Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);}
@@ -23,7 +24,6 @@
   .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
   .tab-page{display:none;}
   .tab-page.active{display:block;}
-  .month-block h2{font-size:18px;margin:0 0 14px;}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;transition:border-color .15s;}
   .card:hover{border-color:var(--accent);}
@@ -34,7 +34,6 @@
   .trend{font-size:12px;font-weight:700;}
   .trend.up{color:var(--good);}
   .trend.down{color:var(--bad);}
-  .trend.flat{color:var(--sub);}
   .progress-bar-outer{background:var(--line);border-radius:4px;height:5px;margin-top:8px;}
   .progress-bar-inner{border-radius:4px;height:5px;background:var(--accent);}
   .progress-bar-inner.good{background:var(--good);}
@@ -43,7 +42,6 @@
   th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;}
   th:first-child,td:first-child{text-align:left;}
   th{color:var(--sub);font-weight:600;background:var(--card2);position:sticky;top:0;}
-  tbody tr{cursor:pointer;}
   tbody tr:hover{background:#1f273c;}
   td.up{color:var(--good);}
   td.down{color:var(--bad);}
@@ -51,26 +49,37 @@
   .section-header{display:flex;align-items:center;justify-content:space-between;margin:28px 0 10px;flex-wrap:wrap;gap:8px;}
   .section-title{font-size:14px;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;}
   .chart-box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:20px;height:300px;}
+  .chart-box.tall{height:360px;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  @media (max-width:860px){.grid2{grid-template-columns:1fr;}}
-  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
-  .pill.good{background:rgba(61,220,151,.15);color:var(--good);}
-  .pill.warn{background:rgba(255,179,71,.15);color:var(--warn);}
-  .pill.bad{background:rgba(255,104,104,.15);color:var(--bad);}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr;}}
   .note{font-size:11.5px;color:var(--sub);background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;margin-top:30px;line-height:1.6;}
   .empty{color:var(--sub);font-size:13px;padding:30px;text-align:center;}
   .export-btn{appearance:none;border:1px solid var(--line);background:var(--card2);color:var(--sub);font-size:12px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
   .export-btn:hover{border-color:var(--accent);color:var(--accent);}
   .export-btn svg{width:13px;height:13px;fill:currentColor;}
   .export-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .tier-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;font-size:12px;color:var(--sub);align-items:center;}
+  .tier-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+  .tier-dot.t100{background:var(--t100);}
+  .tier-dot.t200{background:var(--t200);}
+  .tier-dot.t300{background:var(--t300);}
+  .tier-dot.t500{background:var(--t500);}
+  .tier-dot.coin{background:var(--coin);}
+  .tier-select{appearance:none;background:var(--card2);border:1px solid var(--line);color:var(--text);font-size:13px;padding:5px 12px;border-radius:6px;cursor:pointer;}
+  .card.t100{border-top:3px solid var(--t100);}
+  .card.t200{border-top:3px solid var(--t200);}
+  .card.t300{border-top:3px solid var(--t300);}
+  .card.t500{border-top:3px solid var(--t500);}
+  .card.tcoin{border-top:3px solid var(--coin);}
+  .card.tmember{border-top:3px solid var(--accent);}
 </style>
 </head>
 <body>
 
-<header id="top">
+<header>
   <div>
     <h1>运营数据看板</h1>
-    <div class="sub">数据来源：Google Sheets · 分层结构：总览 + 按月分页查看每日明细</div>
+    <div class="sub">数据来源：Google Sheets · 总览 / 月度明细 / 充值档位分层</div>
   </div>
   <div class="data-range" id="header-range">—</div>
 </header>
@@ -78,364 +87,334 @@
 <nav class="tabs" id="tabs"></nav>
 
 <main>
-
-  <!-- TAB: MONTHLY OVERVIEW -->
+  <!-- 总览 -->
   <section class="tab-page active" id="tab-overview">
     <div class="cards" id="overview-cards"></div>
-
     <div class="section-header">
-      <span class="section-title">月度汇总（点击行跳转到对应月份分页）</span>
+      <span class="section-title">月度汇总（点击行跳转到对应月份）</span>
       <div class="export-group">
-        <button class="export-btn" onclick="exportCSV('monthly')">
-          <svg viewBox="0 0 16 16"><path d="M8 10.5l-3.5-3.5h2V2h3v5h2L8 10.5zM2 13h12v-2H2v2z"/></svg>
-          导出月度CSV
-        </button>
-        <button class="export-btn" onclick="exportCSV('daily')">
-          <svg viewBox="0 0 16 16"><path d="M8 10.5l-3.5-3.5h2V2h3v5h2L8 10.5zM2 13h12v-2H2v2z"/></svg>
-          导出日明细CSV
-        </button>
+        <button class="export-btn" onclick="exportCSV('monthly')"><svg viewBox="0 0 16 16"><path d="M8 10.5l-3.5-3.5h2V2h3v5h2L8 10.5zM2 13h12v-2H2v2z"/></svg>导出月度CSV</button>
+        <button class="export-btn" onclick="exportCSV('daily')"><svg viewBox="0 0 16 16"><path d="M8 10.5l-3.5-3.5h2V2h3v5h2L8 10.5zM2 13h12v-2H2v2z"/></svg>导出日明细CSV</button>
       </div>
     </div>
     <div class="table-wrap">
       <table id="monthly-table">
-        <thead>
-          <tr>
-            <th>月份</th><th>天数</th><th>平均DAU</th><th>DAU环比</th><th>新增注册</th>
-            <th>成功订单</th><th>订单充值额</th><th>充值环比</th><th>平均ARPU</th>
-            <th>支付成功率</th><th>次留均值</th><th>7留均值</th><th>30留均值</th><th>充值流水</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>月份</th><th>天数</th><th>平均DAU</th><th>DAU环比</th><th>新增注册</th>
+          <th>成功订单</th><th>订单充值额</th><th>充值环比</th><th>平均ARPU</th>
+          <th>支付成功率</th><th>次留均值</th><th>7留均值</th><th>30留均值</th><th>充值流水</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </div>
-
-    <div class="section-header">
-      <span class="section-title">月度趋势</span>
-    </div>
+    <div class="section-header"><span class="section-title">月度趋势</span></div>
     <div class="grid2">
       <div class="chart-box"><canvas id="chart-dau"></canvas></div>
       <div class="chart-box"><canvas id="chart-revenue"></canvas></div>
     </div>
   </section>
 
-  <!-- TAB: ONE PAGE PER MONTH -->
-  <div id="month-pages"></div>
+  <!-- 充值分层 -->
+  <section class="tab-page" id="tab-tier">
+    <div class="cards" id="tier-overview-cards"></div>
+    <div class="section-header"><span class="section-title">月度充值档位堆叠（金额）</span></div>
+    <div class="chart-box tall"><canvas id="chart-tier-monthly"></canvas></div>
+    <div class="section-header"><span class="section-title">月度档位占比趋势</span></div>
+    <div class="chart-box"><canvas id="chart-tier-pct"></canvas></div>
+    <div class="section-header">
+      <span class="section-title">每日档位明细</span>
+      <select class="tier-select" id="tier-month-select" onchange="renderTierDailySection(this.value)"></select>
+    </div>
+    <div class="tier-legend">
+      <span><span class="tier-dot t100"></span>100元档</span>
+      <span><span class="tier-dot t200"></span>200元档</span>
+      <span><span class="tier-dot t300"></span>300元档</span>
+      <span><span class="tier-dot t500"></span>500元档</span>
+      <span><span class="tier-dot coin"></span>金币充值</span>
+    </div>
+    <div class="chart-box" id="chart-tier-daily-wrap"><canvas id="chart-tier-daily"></canvas></div>
+    <div class="table-wrap">
+      <table id="table-tier-daily">
+        <thead><tr>
+          <th>日期</th>
+          <th style="color:var(--t100)">100元档</th>
+          <th style="color:var(--t200)">200元档</th>
+          <th style="color:var(--t300)">300元档</th>
+          <th style="color:var(--t500)">500元档</th>
+          <th style="color:var(--coin)">金币充值</th>
+          <th>会员合计</th><th>总充值额</th><th>会员占比</th>
+        </tr></thead>
+        <tbody id="tbody-tier-daily"></tbody>
+      </table>
+    </div>
+  </section>
 
+  <!-- 月度分页 -->
+  <div id="month-pages"></div>
   <div class="note" id="data-note"></div>
 </main>
 
 <script>
 const DATA = DASHBOARD_DATA;
-const fmt = (v, d=0) => v===null||v===undefined||Number.isNaN(+v) ? "-" : Number(v).toLocaleString("zh-CN",{maximumFractionDigits:d,minimumFractionDigits:d});
+const fmt = (v,d=0) => v===null||v===undefined||Number.isNaN(+v) ? "-" : Number(v).toLocaleString("zh-CN",{maximumFractionDigits:d,minimumFractionDigits:d});
 const pct = (v,d=2) => v===null||v===undefined ? "-" : (v*100).toFixed(d)+"%";
-const mom = (cur, prev) => (cur==null||prev==null||prev===0) ? null : (cur-prev)/prev;
-const trendHTML = (v) => {
-  if(v===null) return '';
-  const sign = v>=0 ? '↑' : '↓';
-  const cls = v>=0 ? 'up' : 'down';
-  return `<span class="trend ${cls}">${sign}${(Math.abs(v)*100).toFixed(1)}%</span>`;
-};
+const mom = (cur,prev) => (cur==null||prev==null||prev===0) ? null : (cur-prev)/prev;
+const trendHTML = v => v===null ? '' : `<span class="trend ${v>=0?'up':'down'}">${v>=0?'↑':'↓'}${(Math.abs(v)*100).toFixed(1)}%</span>`;
 
-document.getElementById("data-note").textContent = DATA.note || "";
-
-// header date range
+document.getElementById("data-note").textContent = DATA.note||"";
 const firstDate = DATA.daily[0]?.date;
-const lastDate = DATA.daily[DATA.daily.length-1]?.date;
+const lastDate  = DATA.daily[DATA.daily.length-1]?.date;
 document.getElementById("header-range").textContent = `数据截至 ${lastDate}`;
 
+// ── Charts ──────────────────────────────────────────────────────────────────
 const charts = {};
+function destroyChart(k){ if(charts[k]){charts[k].destroy();delete charts[k];} }
 
-function destroyChart(key){
-  if(charts[key]){ charts[key].destroy(); delete charts[key]; }
-}
-
-function lineChart(canvasId, key, labels, datasets, opts={}){
+function lineChart(id,key,labels,datasets,title=""){
   destroyChart(key);
-  const ctx = document.getElementById(canvasId).getContext("2d");
-  charts[key] = new Chart(ctx, {
+  charts[key]=new Chart(document.getElementById(id).getContext("2d"),{
     type:"line",
-    data:{ labels, datasets: datasets.map(d=>({
-      tension:.3, pointRadius:0, borderWidth:2, fill:false, ...d
-    })) },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      interaction:{mode:"index",intersect:false},
-      plugins:{ legend:{labels:{color:"#8b93a7",font:{size:11}}}, title:{display:!!opts.title,text:opts.title||"",color:"#e8ecf4",font:{size:13}} },
-      scales:{
-        x:{ ticks:{color:"#8b93a7",font:{size:10},maxRotation:0,autoSkip:true}, grid:{color:"#1e2640"} },
-        y:{ ticks:{color:"#8b93a7",font:{size:10}}, grid:{color:"#1e2640"} }
-      }
-    }
-  });
+    data:{labels,datasets:datasets.map(d=>({tension:.3,pointRadius:0,borderWidth:2,fill:false,...d}))},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{labels:{color:"#8b93a7",font:{size:11}}},title:{display:!!title,text:title,color:"#e8ecf4",font:{size:13}}},
+      scales:{x:{ticks:{color:"#8b93a7",font:{size:10},maxRotation:0,autoSkip:true},grid:{color:"#1e2640"}},
+              y:{ticks:{color:"#8b93a7",font:{size:10}},grid:{color:"#1e2640"}}}}});
 }
 
-// ---------- CSV EXPORT ----------
-function exportCSV(type) {
-  let headers, rows;
-  if(type === 'monthly'){
-    headers = ['月份','天数','平均DAU','新增注册合计','成功订单合计','订单充值额','平均ARPU','平均支付成功率','平均次留','平均7留','平均30留','充值流水'];
-    rows = DATA.monthly.map(r => [r.month, r.days, r.dau_avg, r.reg_total, r.orders_total, r.revenue_total, r.arpu_avg, r.pay_success_rate_avg, r.total_d1_avg, r.total_d7_avg, r.total_d30_avg, r.recharge_total ?? '']);
-  } else {
-    headers = ['日期','月份','DAU','安卓DAU','H5 DAU','新增注册','成功订单','订单金额','客单价','支付成功率','ARPU','次留','7留','30留','充值流水'];
-    rows = DATA.daily.map(r => [r.date, r.month, r.dau, r.dau_android, r.dau_h5, r.reg, r.orders_success, r.revenue, r.aov ?? '', r.pay_success_rate, r.arpu ?? '', r.total_d1 ?? '', r.total_d7 ?? '', r.total_d30 ?? '', r.recharge ?? '']);
+function stackedBarChart(id,key,labels,datasets,title="",pctMode=false){
+  destroyChart(key);
+  const yOpts=pctMode
+    ?{stacked:true,min:0,max:100,ticks:{color:"#8b93a7",font:{size:10},callback:v=>v+"%"},grid:{color:"#1e2640"}}
+    :{stacked:true,ticks:{color:"#8b93a7",font:{size:10}},grid:{color:"#1e2640"}};
+  charts[key]=new Chart(document.getElementById(id).getContext("2d"),{
+    type:"bar",
+    data:{labels,datasets:datasets.map(d=>({...d}))},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{labels:{color:"#8b93a7",font:{size:11}}},title:{display:!!title,text:title,color:"#e8ecf4",font:{size:13}}},
+      scales:{x:{stacked:true,ticks:{color:"#8b93a7",font:{size:10},maxRotation:0,autoSkip:true},grid:{color:"#1e2640"}},y:yOpts}}});
+}
+
+// ── CSV Export ───────────────────────────────────────────────────────────────
+function exportCSV(type){
+  let headers,rows;
+  if(type==='monthly'){
+    headers=['月份','天数','平均DAU','新增注册','成功订单','订单充值额','平均ARPU','支付成功率','次留均值','7留均值','30留均值','充值流水','100档','200档','300档','500档','金币','会员卡'];
+    rows=DATA.monthly.map(r=>[r.month,r.days,r.dau_avg,r.reg_total,r.orders_total,r.revenue_total,r.arpu_avg,r.pay_success_rate_avg,r.total_d1_avg,r.total_d7_avg,r.total_d30_avg,r.recharge_total??'',r.tier_100_total??'',r.tier_200_total??'',r.tier_300_total??'',r.tier_500_total??'',r.coin_total??'',r.member_total??'']);
+  }else{
+    headers=['日期','月份','DAU','安卓DAU','H5 DAU','新增注册','成功订单','订单金额','支付成功率','ARPU','次留','7留','30留','充值流水','100档','200档','300档','500档','金币'];
+    rows=DATA.daily.map(r=>[r.date,r.month,r.dau,r.dau_android,r.dau_h5,r.reg,r.orders_success,r.revenue,r.pay_success_rate,r.arpu??'',r.total_d1??'',r.total_d7??'',r.total_d30??'',r.recharge??'',r.tier_100??'',r.tier_200??'',r.tier_300??'',r.tier_500??'',r.coin_revenue??'']);
   }
-  const escape = v => { const s = v==null?'':String(v); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; };
-  const csv = [headers, ...rows].map(r => r.map(escape).join(',')).join('\r\n');
-  const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `运营看板_${type}_${lastDate}.csv`; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  const esc=v=>{const s=v==null?'':String(v);return(s.includes(',')||s.includes('"'))?`"${s.replace(/"/g,'""')}"`:`${s}`;};
+  const csv=[headers,...rows].map(r=>r.map(esc).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`运营看板_${type}_${lastDate}.csv`;a.click();
 }
 
-// ---------- TAB SWITCHING ----------
-const renderedMonths = new Set();
-
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+const renderedMonths=new Set();
 function renderTabs(){
-  const el = document.getElementById("tabs");
-  const tabs = [{ id:"overview", label:"总览" }, ...DATA.monthly.map(r=>({ id:r.month, label:r.month }))];
-  el.innerHTML = tabs.map(t => `<button class="tab-btn" data-tab="${t.id}">${t.label}</button>`).join("");
-  el.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+  const el=document.getElementById("tabs");
+  const tabs=[{id:"overview",label:"总览"},{id:"tier",label:"充值分层"},...DATA.monthly.map(r=>({id:r.month,label:r.month}))];
+  el.innerHTML=tabs.map(t=>`<button class="tab-btn" data-tab="${t.id}">${t.label}</button>`).join("");
+  el.querySelectorAll(".tab-btn").forEach(btn=>btn.addEventListener("click",()=>switchTab(btn.dataset.tab)));
 }
-
 function switchTab(tabId){
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
-  document.querySelectorAll(".tab-page").forEach(p => p.classList.toggle("active", p.id === `tab-${tabId}`));
-  if(tabId !== "overview" && !renderedMonths.has(tabId)){
-    renderMonthBlock(tabId);
-    renderedMonths.add(tabId);
-  }
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===tabId));
+  document.querySelectorAll(".tab-page").forEach(p=>p.classList.toggle("active",p.id===`tab-${tabId}`));
+  if(tabId==="tier") renderTierOverview();
+  else if(tabId!=="overview"&&!renderedMonths.has(tabId)){renderMonthBlock(tabId);renderedMonths.add(tabId);}
   window.scrollTo({top:0});
 }
 
-// ---------- LEVEL 1 ----------
+// ── 总览 ──────────────────────────────────────────────────────────────────────
 function renderOverviewCards(){
-  const m = DATA.monthly;
-  const totalRevenue = m.reduce((s,r)=>s+(r.revenue_total||0),0);
-  const totalReg = m.reduce((s,r)=>s+(r.reg_total||0),0);
-  const totalDays = m.reduce((s,r)=>s+(r.days||0),0);
-  const avgDau = m.reduce((s,r)=>s+(r.dau_avg||0)*(r.days||0),0) / totalDays;
-  const target = DATA.target_may || {};
-
-  // Latest month MoM
-  const latest = m[m.length-1];
-  const prev = m[m.length-2];
-  const dauMoM = mom(latest?.dau_avg, prev?.dau_avg);
-  const revMoM = mom(latest?.revenue_total, prev?.revenue_total);
-
-  // Target card: dynamic — only show if a target exists
-  let targetCard = '';
-  if(target && target.goal){
-    const rate = target.completion_rate || 0;
-    const label = (target.deadline||'').slice(0,7) || '5月';
-    const barCls = rate >= 1 ? 'good' : rate >= 0.8 ? '' : 'warn';
-    targetCard = `<div class="card">
-      <div class="label">${label} 充值目标进度</div>
-      <div class="value">${pct(rate,1)} <small>${target.status||""}</small></div>
-      <div class="meta">目标 ${fmt(target.goal)} · 已完成 ${fmt(target.completed)}</div>
-      <div class="progress-bar-outer"><div class="progress-bar-inner ${barCls}" style="width:${Math.min(rate*100,100).toFixed(0)}%"></div></div>
-    </div>`;
+  const m=DATA.monthly;
+  const totalRevenue=m.reduce((s,r)=>s+(r.revenue_total||0),0);
+  const totalReg=m.reduce((s,r)=>s+(r.reg_total||0),0);
+  const days=m.reduce((s,r)=>s+(r.days||0),0);
+  const avgDau=m.reduce((s,r)=>s+(r.dau_avg||0)*(r.days||0),0)/days;
+  const latest=m[m.length-1],prev=m[m.length-2];
+  const dauMoM=mom(latest?.dau_avg,prev?.dau_avg),revMoM=mom(latest?.revenue_total,prev?.revenue_total);
+  const target=DATA.target_may||{};
+  let targetCard='';
+  if(target&&target.goal){
+    const rate=target.completion_rate||0,label=(target.deadline||'').slice(0,7)||'5月',barCls=rate>=1?'good':rate>=0.8?'':'warn';
+    targetCard=`<div class="card"><div class="label">${label} 充值目标进度</div><div class="value">${pct(rate,1)} <small>${target.status||""}</small></div><div class="meta">目标 ${fmt(target.goal)} · 已完成 ${fmt(target.completed)}</div><div class="progress-bar-outer"><div class="progress-bar-inner ${barCls}" style="width:${Math.min(rate*100,100).toFixed(0)}%"></div></div></div>`;
   }
-
-  document.getElementById("overview-cards").innerHTML = `
-    <div class="card">
-      <div class="label">统计区间</div>
-      <div class="value" style="font-size:15px">${firstDate} ~ ${lastDate}</div>
-      <div class="meta">共 ${m.length} 个月 · ${DATA.daily.length} 天</div>
-    </div>
-    <div class="card">
-      <div class="label">区间内平均 DAU</div>
-      <div class="value">${fmt(avgDau)} ${trendHTML(dauMoM)}</div>
-      <div class="meta">最近月(${latest?.month}): ${fmt(latest?.dau_avg)}</div>
-    </div>
-    <div class="card">
-      <div class="label">累计新增注册</div>
-      <div class="value">${fmt(totalReg)}</div>
-      <div class="meta">最近月: ${fmt(latest?.reg_total)}</div>
-    </div>
-    <div class="card">
-      <div class="label">累计订单充值额</div>
-      <div class="value">${fmt(totalRevenue)} ${trendHTML(revMoM)}</div>
-      <div class="meta">最近月: ${fmt(latest?.revenue_total)}</div>
-    </div>
-    ${targetCard}
-  `;
+  document.getElementById("overview-cards").innerHTML=`
+    <div class="card"><div class="label">统计区间</div><div class="value" style="font-size:15px">${firstDate} ~ ${lastDate}</div><div class="meta">共 ${m.length} 个月 · ${DATA.daily.length} 天</div></div>
+    <div class="card"><div class="label">区间内平均 DAU</div><div class="value">${fmt(avgDau)} ${trendHTML(dauMoM)}</div><div class="meta">最近月(${latest?.month}): ${fmt(latest?.dau_avg)}</div></div>
+    <div class="card"><div class="label">累计新增注册</div><div class="value">${fmt(totalReg)}</div><div class="meta">最近月: ${fmt(latest?.reg_total)}</div></div>
+    <div class="card"><div class="label">累计订单充值额</div><div class="value">${fmt(totalRevenue)} ${trendHTML(revMoM)}</div><div class="meta">最近月: ${fmt(latest?.revenue_total)}</div></div>
+    ${targetCard}`;
 }
 
 function renderMonthlyTable(){
-  const tbody = document.querySelector("#monthly-table tbody");
-  tbody.innerHTML = DATA.monthly.map((r, i) => {
-    const prev = DATA.monthly[i-1];
-    const dauChg = mom(r.dau_avg, prev?.dau_avg);
-    const revChg = mom(r.revenue_total, prev?.revenue_total);
-    const dauTd = dauChg===null ? '<td>—</td>' : `<td class="${dauChg>=0?'up':'down'}">${dauChg>=0?'↑':'↓'}${(Math.abs(dauChg)*100).toFixed(1)}%</td>`;
-    const revTd = revChg===null ? '<td>—</td>' : `<td class="${revChg>=0?'up':'down'}">${revChg>=0?'↑':'↓'}${(Math.abs(revChg)*100).toFixed(1)}%</td>`;
-    return `<tr onclick="switchTab('${r.month}')">
-      <td>${r.month}</td>
-      <td>${r.days}</td>
-      <td>${fmt(r.dau_avg)}</td>
-      ${dauTd}
-      <td>${fmt(r.reg_total)}</td>
-      <td>${fmt(r.orders_total)}</td>
-      <td>${fmt(r.revenue_total)}</td>
-      ${revTd}
-      <td>${r.arpu_avg ?? "-"}</td>
-      <td>${pct(r.pay_success_rate_avg)}</td>
-      <td>${fmt(r.total_d1_avg)}</td>
-      <td>${fmt(r.total_d7_avg)}</td>
-      <td>${fmt(r.total_d30_avg)}</td>
-      <td>${r.recharge_total!=null ? fmt(r.recharge_total) : "-"}</td>
-    </tr>`;
+  const tbody=document.querySelector("#monthly-table tbody");
+  tbody.innerHTML=DATA.monthly.map((r,i)=>{
+    const prev=DATA.monthly[i-1];
+    const dc=mom(r.dau_avg,prev?.dau_avg),rc=mom(r.revenue_total,prev?.revenue_total);
+    const dTd=dc===null?'<td>—</td>':`<td class="${dc>=0?'up':'down'}">${dc>=0?'↑':'↓'}${(Math.abs(dc)*100).toFixed(1)}%</td>`;
+    const rTd=rc===null?'<td>—</td>':`<td class="${rc>=0?'up':'down'}">${rc>=0?'↑':'↓'}${(Math.abs(rc)*100).toFixed(1)}%</td>`;
+    return `<tr onclick="switchTab('${r.month}')"><td>${r.month}</td><td>${r.days}</td><td>${fmt(r.dau_avg)}</td>${dTd}<td>${fmt(r.reg_total)}</td><td>${fmt(r.orders_total)}</td><td>${fmt(r.revenue_total)}</td>${rTd}<td>${r.arpu_avg??"-"}</td><td>${pct(r.pay_success_rate_avg)}</td><td>${fmt(r.total_d1_avg)}</td><td>${fmt(r.total_d7_avg)}</td><td>${fmt(r.total_d30_avg)}</td><td>${r.recharge_total!=null?fmt(r.recharge_total):"-"}</td></tr>`;
   }).join("");
 }
 
 function renderMonthlyCharts(){
-  const labels = DATA.monthly.map(r=>r.month);
-  lineChart("chart-dau","m-dau",labels,[
-    {label:"平均DAU", data:DATA.monthly.map(r=>r.dau_avg), borderColor:"#4f8cff"}
-  ],{title:"月平均DAU趋势"});
+  const labels=DATA.monthly.map(r=>r.month);
+  lineChart("chart-dau","m-dau",labels,[{label:"平均DAU",data:DATA.monthly.map(r=>r.dau_avg),borderColor:"#4f8cff"}],"月平均DAU趋势");
   lineChart("chart-revenue","m-rev",labels,[
-    {label:"订单充值额", data:DATA.monthly.map(r=>r.revenue_total), borderColor:"#3ddc97"},
-    {label:"充值流水", data:DATA.monthly.map(r=>r.recharge_total), borderColor:"#ffb347"}
-  ],{title:"月度充值趋势"});
+    {label:"订单充值额",data:DATA.monthly.map(r=>r.revenue_total),borderColor:"#3ddc97"},
+    {label:"充值流水",data:DATA.monthly.map(r=>r.recharge_total),borderColor:"#ffb347"}
+  ],"月度充值趋势");
 }
 
-// ---------- TAB PAGES: one per month, lazily rendered on first visit ----------
+// ── 充值分层板块 ───────────────────────────────────────────────────────────────
+let tierRendered=false;
+function renderTierOverview(){
+  if(tierRendered)return;
+  tierRendered=true;
+  const m=DATA.monthly;
+  const sumKey=k=>m.reduce((s,r)=>s+(r[k]||0),0);
+  const t100=sumKey("tier_100_total"),t200=sumKey("tier_200_total"),t300=sumKey("tier_300_total"),t500=sumKey("tier_500_total");
+  const coin=sumKey("coin_total"),member=sumKey("member_total"),grand=coin+member;
+  document.getElementById("tier-overview-cards").innerHTML=`
+    <div class="card tcoin"><div class="label">金币充值合计</div><div class="value">${fmt(coin)}</div><div class="meta">占比 ${grand?((coin/grand)*100).toFixed(1):0}%</div></div>
+    <div class="card tmember"><div class="label">会员卡充值合计</div><div class="value">${fmt(member)}</div><div class="meta">占比 ${grand?((member/grand)*100).toFixed(1):0}%</div></div>
+    <div class="card t100"><div class="label">100元档合计</div><div class="value">${fmt(t100)}</div><div class="meta">会员中占 ${member?((t100/member)*100).toFixed(1):0}%</div></div>
+    <div class="card t200"><div class="label">200元档合计</div><div class="value">${fmt(t200)}</div><div class="meta">会员中占 ${member?((t200/member)*100).toFixed(1):0}%</div></div>
+    <div class="card t300"><div class="label">300元档合计</div><div class="value">${fmt(t300)}</div><div class="meta">会员中占 ${member?((t300/member)*100).toFixed(1):0}%</div></div>
+    <div class="card t500"><div class="label">500元档合计</div><div class="value">${fmt(t500)}</div><div class="meta">会员中占 ${member?((t500/member)*100).toFixed(1):0}%</div></div>`;
+
+  const labels=m.map(r=>r.month);
+  stackedBarChart("chart-tier-monthly","tier-monthly",labels,[
+    {label:"100元档",data:m.map(r=>r.tier_100_total||0),backgroundColor:"rgba(79,140,255,.85)"},
+    {label:"200元档",data:m.map(r=>r.tier_200_total||0),backgroundColor:"rgba(61,220,151,.85)"},
+    {label:"300元档",data:m.map(r=>r.tier_300_total||0),backgroundColor:"rgba(255,179,71,.85)"},
+    {label:"500元档",data:m.map(r=>r.tier_500_total||0),backgroundColor:"rgba(176,124,255,.85)"},
+    {label:"金币充值",data:m.map(r=>r.coin_total||0),backgroundColor:"rgba(255,209,102,.85)"},
+  ],"月度充值档位堆叠（元）");
+
+  const pctData=m.map(r=>{
+    const tot=(r.tier_100_total||0)+(r.tier_200_total||0)+(r.tier_300_total||0)+(r.tier_500_total||0)+(r.coin_total||0);
+    const p=k=>tot?+((r[k]||0)/tot*100).toFixed(1):0;
+    return{t100:p("tier_100_total"),t200:p("tier_200_total"),t300:p("tier_300_total"),t500:p("tier_500_total"),coin:p("coin_total")};
+  });
+  stackedBarChart("chart-tier-pct","tier-pct",labels,[
+    {label:"100元档",data:pctData.map(d=>d.t100),backgroundColor:"rgba(79,140,255,.85)"},
+    {label:"200元档",data:pctData.map(d=>d.t200),backgroundColor:"rgba(61,220,151,.85)"},
+    {label:"300元档",data:pctData.map(d=>d.t300),backgroundColor:"rgba(255,179,71,.85)"},
+    {label:"500元档",data:pctData.map(d=>d.t500),backgroundColor:"rgba(176,124,255,.85)"},
+    {label:"金币充值",data:pctData.map(d=>d.coin),backgroundColor:"rgba(255,209,102,.85)"},
+  ],"月度档位占比（%）",true);
+
+  const sel=document.getElementById("tier-month-select");
+  sel.innerHTML=DATA.monthly.map(r=>`<option value="${r.month}">${r.month}</option>`).join("");
+  sel.value=DATA.monthly[DATA.monthly.length-1].month;
+  renderTierDailySection(sel.value);
+}
+
+function renderTierDailySection(month){
+  const recs=DATA.daily.filter(r=>r.month===month);
+  const labels=recs.map(r=>r.date.slice(5));
+  stackedBarChart("chart-tier-daily","tier-daily",labels,[
+    {label:"100元档",data:recs.map(r=>r.tier_100||0),backgroundColor:"rgba(79,140,255,.85)"},
+    {label:"200元档",data:recs.map(r=>r.tier_200||0),backgroundColor:"rgba(61,220,151,.85)"},
+    {label:"300元档",data:recs.map(r=>r.tier_300||0),backgroundColor:"rgba(255,179,71,.85)"},
+    {label:"500元档",data:recs.map(r=>r.tier_500||0),backgroundColor:"rgba(176,124,255,.85)"},
+    {label:"金币充值",data:recs.map(r=>r.coin_revenue||0),backgroundColor:"rgba(255,209,102,.85)"},
+  ],`${month} 每日充值档位（元）`);
+  document.getElementById("tbody-tier-daily").innerHTML=recs.map(r=>{
+    const mbr=(r.tier_100||0)+(r.tier_200||0)+(r.tier_300||0)+(r.tier_500||0);
+    const tot=mbr+(r.coin_revenue||0);
+    return `<tr><td>${r.date}</td><td>${r.tier_100!=null?fmt(r.tier_100):"-"}</td><td>${r.tier_200!=null?fmt(r.tier_200):"-"}</td><td>${r.tier_300!=null?fmt(r.tier_300):"-"}</td><td>${r.tier_500!=null?fmt(r.tier_500):"-"}</td><td>${r.coin_revenue!=null?fmt(r.coin_revenue):"-"}</td><td>${mbr?fmt(mbr):"-"}</td><td>${tot?fmt(tot):"-"}</td><td>${tot?((mbr/tot)*100).toFixed(1)+"%":"-"}</td></tr>`;
+  }).join("");
+}
+
+// ── 月度分页 ──────────────────────────────────────────────────────────────────
 function monthBlockHTML(month){
-  return `
-  <section class="tab-page" id="tab-${month}">
-    <h2>${month} 每日明细</h2>
+  return `<section class="tab-page" id="tab-${month}">
+    <h2 style="font-size:18px;margin:0 0 14px">${month} 每日明细</h2>
     <div class="cards" id="cards-${month}"></div>
     <div class="grid2">
-      <div class="chart-box" id="chart-dau-wrap-${month}"><canvas id="chart-dau-${month}"></canvas></div>
-      <div class="chart-box" id="chart-rev-wrap-${month}"><canvas id="chart-rev-${month}"></canvas></div>
+      <div class="chart-box" id="cdau-wrap-${month}"><canvas id="chart-dau-${month}"></canvas></div>
+      <div class="chart-box" id="crev-wrap-${month}"><canvas id="chart-rev-${month}"></canvas></div>
     </div>
     <div class="grid2">
       <div class="chart-box"><canvas id="chart-ret-${month}"></canvas></div>
-      <div class="chart-box" id="chart-rec-wrap-${month}"><canvas id="chart-rec-${month}"></canvas></div>
+      <div class="chart-box" id="crec-wrap-${month}"><canvas id="chart-rec-${month}"></canvas></div>
     </div>
+    <div class="section-header"><span class="section-title">充值档位分层</span></div>
+    <div class="chart-box" id="ctier-wrap-${month}"><canvas id="chart-tier-${month}"></canvas></div>
     <div class="section-header">
       <span class="section-title">每日明细</span>
-      <button class="export-btn" onclick="exportMonthCSV('${month}')">
-        <svg viewBox="0 0 16 16"><path d="M8 10.5l-3.5-3.5h2V2h3v5h2L8 10.5zM2 13h12v-2H2v2z"/></svg>
-        导出本月CSV
-      </button>
+      <button class="export-btn" onclick="exportMonthCSV('${month}')"><svg viewBox="0 0 16 16"><path d="M8 10.5l-3.5-3.5h2V2h3v5h2L8 10.5zM2 13h12v-2H2v2z"/></svg>导出本月CSV</button>
     </div>
-    <div class="table-wrap">
-      <table id="table-${month}">
-        <thead>
-          <tr>
-            <th>日期</th><th>DAU</th><th>安卓DAU</th><th>H5 DAU</th><th>新增注册</th>
-            <th>成功订单</th><th>订单金额</th><th>客单价</th><th>支付成功率</th><th>ARPU</th>
-            <th>次留</th><th>7留</th><th>30留</th><th>充值流水</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <div class="table-wrap"><table id="table-${month}">
+      <thead><tr><th>日期</th><th>DAU</th><th>安卓DAU</th><th>H5 DAU</th><th>新增注册</th><th>成功订单</th><th>订单金额</th><th>客单价</th><th>支付成功率</th><th>ARPU</th><th>次留</th><th>7留</th><th>30留</th><th style="color:var(--t100)">100档</th><th style="color:var(--t200)">200档</th><th style="color:var(--t300)">300档</th><th style="color:var(--t500)">500档</th><th style="color:var(--coin)">金币</th><th>充值流水</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
   </section>`;
 }
 
-function exportMonthCSV(month) {
-  const recs = DATA.daily.filter(r=>r.month===month);
-  const headers = ['日期','DAU','安卓DAU','H5 DAU','新增注册','成功订单','订单金额','客单价','支付成功率','ARPU','次留','7留','30留','充值流水'];
-  const rows = recs.map(r => [r.date, r.dau, r.dau_android, r.dau_h5, r.reg, r.orders_success, r.revenue, r.aov??'', r.pay_success_rate, r.arpu??'', r.total_d1??'', r.total_d7??'', r.total_d30??'', r.recharge??'']);
-  const escape = v => { const s = v==null?'':String(v); return (s.includes(',') || s.includes('"')) ? `"${s.replace(/"/g,'""')}"` : s; };
-  const csv = [headers, ...rows].map(r => r.map(escape).join(',')).join('\r\n');
-  const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download=`运营看板_${month}.csv`; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+function exportMonthCSV(month){
+  const recs=DATA.daily.filter(r=>r.month===month);
+  const headers=['日期','DAU','安卓DAU','H5 DAU','新增注册','成功订单','订单金额','客单价','支付成功率','ARPU','次留','7留','30留','100档','200档','300档','500档','金币','充值流水'];
+  const rows=recs.map(r=>[r.date,r.dau,r.dau_android,r.dau_h5,r.reg,r.orders_success,r.revenue,r.aov??'',r.pay_success_rate,r.arpu??'',r.total_d1??'',r.total_d7??'',r.total_d30??'',r.tier_100??'',r.tier_200??'',r.tier_300??'',r.tier_500??'',r.coin_revenue??'',r.recharge??'']);
+  const esc=v=>{const s=v==null?'':String(v);return(s.includes(',')||s.includes('"'))?`"${s.replace(/"/g,'""')}"`:`${s}`;};
+  const csv=[headers,...rows].map(r=>r.map(esc).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`运营看板_${month}.csv`;a.click();
 }
 
-function renderMonthCards(month, recs){
-  const sum = (k)=>{ const vals=recs.map(r=>r[k]).filter(v=>v!=null); return vals.length? vals.reduce((a,b)=>a+b,0):null; };
-  const avg = (k)=>{ const vals=recs.map(r=>r[k]).filter(v=>v!=null); return vals.length? vals.reduce((a,b)=>a+b,0)/vals.length:null; };
-  // MoM vs previous month same metrics from DATA.monthly
-  const mi = DATA.monthly.findIndex(m=>m.month===month);
-  const prevM = mi>0 ? DATA.monthly[mi-1] : null;
-  const dauMoM = mom(avg('dau'), prevM?.dau_avg);
-  const revMoM = mom(sum('revenue'), prevM?.revenue_total);
-
-  document.getElementById(`cards-${month}`).innerHTML = `
+function renderMonthCards(month,recs){
+  const sv=k=>{const v=recs.map(r=>r[k]).filter(v=>v!=null);return v.length?v.reduce((a,b)=>a+b,0):null;};
+  const av=k=>{const v=recs.map(r=>r[k]).filter(v=>v!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const mi=DATA.monthly.findIndex(m=>m.month===month);
+  const prevM=mi>0?DATA.monthly[mi-1]:null;
+  const dMoM=mom(av("dau"),prevM?.dau_avg),rMoM=mom(sv("revenue"),prevM?.revenue_total);
+  document.getElementById(`cards-${month}`).innerHTML=`
     <div class="card"><div class="label">月份</div><div class="value" style="font-size:16px">${month}</div><div class="meta">${recs.length} 天数据</div></div>
-    <div class="card"><div class="label">平均DAU</div><div class="value">${fmt(avg("dau"))} ${trendHTML(dauMoM)}</div><div class="meta">环比上月</div></div>
-    <div class="card"><div class="label">新增注册合计</div><div class="value">${sum("reg")!=null? fmt(sum("reg")):"-"}</div></div>
-    <div class="card"><div class="label">成功订单合计</div><div class="value">${sum("orders_success")!=null? fmt(sum("orders_success")):"-"}</div></div>
-    <div class="card"><div class="label">订单充值额合计</div><div class="value">${sum("revenue")!=null? fmt(sum("revenue")):"-"} ${trendHTML(revMoM)}</div><div class="meta">环比上月</div></div>
-    <div class="card"><div class="label">平均ARPU</div><div class="value">${avg("arpu")!=null? avg("arpu").toFixed(2):"-"}</div></div>
-  `;
+    <div class="card"><div class="label">平均DAU</div><div class="value">${fmt(av("dau"))} ${trendHTML(dMoM)}</div><div class="meta">环比上月</div></div>
+    <div class="card"><div class="label">新增注册</div><div class="value">${sv("reg")!=null?fmt(sv("reg")):"-"}</div></div>
+    <div class="card"><div class="label">成功订单</div><div class="value">${sv("orders_success")!=null?fmt(sv("orders_success")):"-"}</div></div>
+    <div class="card"><div class="label">订单充值额</div><div class="value">${sv("revenue")!=null?fmt(sv("revenue")):"-"} ${trendHTML(rMoM)}</div><div class="meta">环比上月</div></div>
+    <div class="card"><div class="label">平均ARPU</div><div class="value">${av("arpu")!=null?av("arpu").toFixed(2):"-"}</div></div>`;
 }
 
 function renderMonthBlock(month){
-  const recs = DATA.daily.filter(r=>r.month===month);
-  renderMonthCards(month, recs);
-
-  const labels = recs.map(r=>r.date.slice(5));
-
-  if(recs.some(r=>r.dau!=null)){
-    lineChart(`chart-dau-${month}`, `dau-${month}`, labels,[
-      {label:"DAU", data:recs.map(r=>r.dau), borderColor:"#4f8cff"},
-      {label:"安卓DAU", data:recs.map(r=>r.dau_android), borderColor:"#7a8cff"},
-      {label:"H5 DAU", data:recs.map(r=>r.dau_h5), borderColor:"#56d9ff"}
-    ],{title:"每日活跃用户"});
-  } else {
-    document.getElementById(`chart-dau-wrap-${month}`).innerHTML = '<div class="empty">该月暂无DAU数据</div>';
-  }
-
-  if(recs.some(r=>r.revenue!=null)){
-    lineChart(`chart-rev-${month}`, `rev-${month}`, labels,[
-      {label:"订单金额", data:recs.map(r=>r.revenue), borderColor:"#3ddc97"},
-      {label:"新增注册", data:recs.map(r=>r.reg), borderColor:"#ffb347"}
-    ],{title:"订单金额 / 新增注册"});
-  } else {
-    document.getElementById(`chart-rev-wrap-${month}`).innerHTML = '<div class="empty">该月暂无订单/注册数据</div>';
-  }
-
-  lineChart(`chart-ret-${month}`, `ret-${month}`, labels,[
-    {label:"次留", data:recs.map(r=>r.total_d1), borderColor:"#4f8cff"},
-    {label:"3留", data:recs.map(r=>r.total_d3), borderColor:"#3ddc97"},
-    {label:"7留", data:recs.map(r=>r.total_d7), borderColor:"#ffb347"},
-    {label:"15留", data:recs.map(r=>r.total_d15), borderColor:"#ff6868"},
-    {label:"30留", data:recs.map(r=>r.total_d30), borderColor:"#b07cff"}
-  ],{title:"留存明细"});
-
-  const hasRecharge = recs.some(r=>r.recharge!=null);
-  if(hasRecharge){
-    lineChart(`chart-rec-${month}`, `rec-${month}`, labels,[
-      {label:"充值流水", data:recs.map(r=>r.recharge), borderColor:"#ffb347"}
-    ],{title:"每日充值流水"});
-  } else {
-    document.getElementById(`chart-rec-wrap-${month}`).innerHTML = '<div class="empty">该月暂无独立充值流水数据</div>';
-  }
-
-  const tbody = document.querySelector(`#table-${month} tbody`);
-  tbody.innerHTML = recs.map(r => `
-    <tr>
-      <td>${r.date}</td>
-      <td>${fmt(r.dau)}</td>
-      <td>${fmt(r.dau_android)}</td>
-      <td>${fmt(r.dau_h5)}</td>
-      <td>${fmt(r.reg)}</td>
-      <td>${fmt(r.orders_success)}</td>
-      <td>${fmt(r.revenue)}</td>
-      <td>${r.aov ?? "-"}</td>
-      <td>${pct(r.pay_success_rate)}</td>
-      <td>${r.arpu ?? "-"}</td>
-      <td>${fmt(r.total_d1)}</td>
-      <td>${fmt(r.total_d7)}</td>
-      <td>${fmt(r.total_d30)}</td>
-      <td>${r.recharge!=null? fmt(r.recharge) : "-"}</td>
-    </tr>
-  `).join("");
+  const recs=DATA.daily.filter(r=>r.month===month);
+  renderMonthCards(month,recs);
+  const labels=recs.map(r=>r.date.slice(5));
+  if(recs.some(r=>r.dau!=null)){lineChart(`chart-dau-${month}`,`dau-${month}`,labels,[{label:"DAU",data:recs.map(r=>r.dau),borderColor:"#4f8cff"},{label:"安卓DAU",data:recs.map(r=>r.dau_android),borderColor:"#7a8cff"},{label:"H5 DAU",data:recs.map(r=>r.dau_h5),borderColor:"#56d9ff"}],"每日活跃用户");}
+  else{document.getElementById(`cdau-wrap-${month}`).innerHTML='<div class="empty">暂无DAU数据</div>';}
+  if(recs.some(r=>r.revenue!=null)){lineChart(`chart-rev-${month}`,`rev-${month}`,labels,[{label:"订单金额",data:recs.map(r=>r.revenue),borderColor:"#3ddc97"},{label:"新增注册",data:recs.map(r=>r.reg),borderColor:"#ffb347"}],"订单金额 / 新增注册");}
+  else{document.getElementById(`crev-wrap-${month}`).innerHTML='<div class="empty">暂无订单数据</div>';}
+  lineChart(`chart-ret-${month}`,`ret-${month}`,labels,[
+    {label:"次留",data:recs.map(r=>r.total_d1),borderColor:"#4f8cff"},{label:"3留",data:recs.map(r=>r.total_d3),borderColor:"#3ddc97"},
+    {label:"7留",data:recs.map(r=>r.total_d7),borderColor:"#ffb347"},{label:"15留",data:recs.map(r=>r.total_d15),borderColor:"#ff6868"},
+    {label:"30留",data:recs.map(r=>r.total_d30),borderColor:"#b07cff"}],"留存明细");
+  if(recs.some(r=>r.recharge!=null)){lineChart(`chart-rec-${month}`,`rec-${month}`,labels,[{label:"充值流水",data:recs.map(r=>r.recharge),borderColor:"#ffb347"}],"每日充值流水");}
+  else{document.getElementById(`crec-wrap-${month}`).innerHTML='<div class="empty">暂无充值流水数据</div>';}
+  if(recs.some(r=>r.tier_100!=null||r.coin_revenue!=null)){
+    stackedBarChart(`chart-tier-${month}`,`tier-${month}`,labels,[
+      {label:"100元档",data:recs.map(r=>r.tier_100||0),backgroundColor:"rgba(79,140,255,.85)"},
+      {label:"200元档",data:recs.map(r=>r.tier_200||0),backgroundColor:"rgba(61,220,151,.85)"},
+      {label:"300元档",data:recs.map(r=>r.tier_300||0),backgroundColor:"rgba(255,179,71,.85)"},
+      {label:"500元档",data:recs.map(r=>r.tier_500||0),backgroundColor:"rgba(176,124,255,.85)"},
+      {label:"金币充值",data:recs.map(r=>r.coin_revenue||0),backgroundColor:"rgba(255,209,102,.85)"},
+    ],`${month} 每日充值档位（元）`);
+  }else{document.getElementById(`ctier-wrap-${month}`).innerHTML='<div class="empty">暂无档位数据</div>';}
+  const tbody=document.querySelector(`#table-${month} tbody`);
+  tbody.innerHTML=recs.map(r=>`<tr><td>${r.date}</td><td>${fmt(r.dau)}</td><td>${fmt(r.dau_android)}</td><td>${fmt(r.dau_h5)}</td><td>${fmt(r.reg)}</td><td>${fmt(r.orders_success)}</td><td>${fmt(r.revenue)}</td><td>${r.aov??"-"}</td><td>${pct(r.pay_success_rate)}</td><td>${r.arpu??"-"}</td><td>${fmt(r.total_d1)}</td><td>${fmt(r.total_d7)}</td><td>${fmt(r.total_d30)}</td><td>${r.tier_100!=null?fmt(r.tier_100):"-"}</td><td>${r.tier_200!=null?fmt(r.tier_200):"-"}</td><td>${r.tier_300!=null?fmt(r.tier_300):"-"}</td><td>${r.tier_500!=null?fmt(r.tier_500):"-"}</td><td>${r.coin_revenue!=null?fmt(r.coin_revenue):"-"}</td><td>${r.recharge!=null?fmt(r.recharge):"-"}</td></tr>`).join("");
 }
 
 function buildMonthPages(){
-  const container = document.getElementById("month-pages");
-  container.innerHTML = DATA.monthly.map(r => monthBlockHTML(r.month)).join("");
+  document.getElementById("month-pages").innerHTML=DATA.monthly.map(r=>monthBlockHTML(r.month)).join("");
 }
 
-// init
 renderOverviewCards();
 renderMonthlyTable();
 renderMonthlyCharts();
@@ -443,6 +422,5 @@ renderTabs();
 buildMonthPages();
 switchTab("overview");
 </script>
-
 </body>
 </html>

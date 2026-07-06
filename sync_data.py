@@ -130,12 +130,15 @@ for r, date_cell in sheet_rows("每日数据登记"):
         "revenue_h5": r2(cell(ws_core, r, 47)),
     }
 
-# 数据源（付费率）
+# 数据源（付费率 + 充值档位分层）数值均为实际值÷100，×100还原
 ws_src = wb["数据源"]
 for r, date_cell in sheet_rows("数据源"):
     date = fdate(date_cell)
     if date in daily_core:
         daily_core[date]["pay_rate"] = r4(cell(ws_src, r, 13))
+        for col, key in [(15, "tier_500"), (16, "tier_300"), (17, "tier_200"), (18, "tier_100")]:
+            v = cell(ws_src, r, col)
+            daily_core[date][key] = round(v * 100, 2) if isinstance(v, (int, float)) else None
 
 # 留存数据
 ws_ret = wb["留存数据"]
@@ -235,6 +238,12 @@ for m in sorted(months_map):
         "total_d7_avg": avg([r.get("total_d7") for r in recs]),
         "total_d30_avg": avg([r.get("total_d30") for r in recs]),
         "recharge_total": total([r.get("recharge") for r in recs]),
+        "tier_100_total": total([r.get("tier_100") for r in recs]),
+        "tier_200_total": total([r.get("tier_200") for r in recs]),
+        "tier_300_total": total([r.get("tier_300") for r in recs]),
+        "tier_500_total": total([r.get("tier_500") for r in recs]),
+        "coin_total": total([r.get("coin_revenue") for r in recs]),
+        "member_total": total([r.get("member_revenue") for r in recs]),
     })
 
 # ── 4. 输出 data.js ──────────────────────────────────────────────────────────
