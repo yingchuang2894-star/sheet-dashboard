@@ -18,6 +18,15 @@ header{padding:16px 28px;border-bottom:1px solid var(--line);display:flex;align-
 header h1{font-size:17px;font-weight:700;letter-spacing:.01em;}
 header .sub{color:var(--sub);font-size:11.5px;margin-top:3px;}
 .data-range{font-size:11.5px;color:var(--sub);background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:4px 10px;}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+#sync-btn{appearance:none;border:1px solid var(--line);background:var(--card2);color:var(--sub);font-size:12px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .18s;}
+#sync-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+#sync-btn:disabled{opacity:.5;cursor:not-allowed;}
+#sync-btn .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#sync-toast{position:fixed;bottom:22px;right:24px;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:10px 16px;font-size:12.5px;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:999;display:none;max-width:320px;line-height:1.5;}
+#sync-toast.ok{border-color:var(--good);color:var(--good);}
+#sync-toast.err{border-color:var(--bad);color:var(--bad);}
 .tabs{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding:0 28px;display:flex;gap:0;overflow-x:auto;}
 .tab-btn{appearance:none;border:none;border-bottom:2px solid transparent;background:none;color:var(--sub);font-size:13px;font-weight:600;padding:13px 15px;cursor:pointer;white-space:nowrap;transition:color .15s;}
 .tab-btn:hover{color:var(--text);}
@@ -120,8 +129,15 @@ main{padding:22px 28px 60px;max-width:1400px;margin:0 auto;}
     <h1>运营数据看板</h1>
     <div class="sub">数据来源：Google Sheets · 每日数据登记 / 数据源 / 留存数据</div>
   </div>
-  <div class="data-range" id="header-range">—</div>
+  <div class="header-right">
+    <div class="data-range" id="header-range">—</div>
+    <button id="sync-btn" onclick="triggerSync()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.06-3.39L10 7h5V2l-1.35.35z"/></svg>
+      立即同步
+    </button>
+  </div>
 </header>
+<div id="sync-toast"></div>
 
 <nav class="tabs" id="tabs"></nav>
 
@@ -530,6 +546,49 @@ function renderMonthBlock(month){
 
 function buildMonthPages(){
   document.getElementById('month-pages').innerHTML=DATA.monthly.map(r=>monthBlockHTML(r.month)).join('');
+}
+
+// ─── 手动同步 ──────────────────────────────────────────────────────────────
+// 部署 Cloudflare Worker 后，把下面的 URL 换成你的 Worker 地址
+const WORKER_URL = "https://sheet-dashboard-trigger.YOURNAME.workers.dev";
+const COOLDOWN = 5 * 60 * 1000; // 5 分钟冷却
+
+function toast(msg, type='', ms=4000){
+  const el=document.getElementById('sync-toast');
+  el.textContent=msg; el.className=type; el.style.display='block';
+  clearTimeout(el._t); el._t=setTimeout(()=>{el.style.display='none';},ms);
+}
+
+async function triggerSync(){
+  if(WORKER_URL.includes('YOURNAME')){
+    toast('⚠️ 请先部署 Cloudflare Worker 并填入 Worker 地址','err',5000);
+    return;
+  }
+  const lastTrigger=+localStorage.getItem('lastSync')||0;
+  const remain=Math.ceil((COOLDOWN-(Date.now()-lastTrigger))/1000);
+  if(remain>0){toast(`请等待 ${remain} 秒后再次同步`,'',3000);return;}
+
+  const btn=document.getElementById('sync-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span>同步中...';
+  toast('正在触发同步，数据约 60 秒后更新…','',60000);
+
+  try{
+    const r=await fetch(WORKER_URL,{method:'POST'});
+    const j=await r.json();
+    if(j.ok){
+      localStorage.setItem('lastSync',Date.now());
+      toast('✅ 同步已触发！60 秒后刷新页面即可看到最新数据。','ok',10000);
+      setTimeout(()=>location.reload(),65000);
+    }else{
+      toast(`同步失败（HTTP ${j.status}），请稍后重试`,'err',5000);
+    }
+  }catch(e){
+    toast('网络错误，请检查 Worker 地址是否正确','err',5000);
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.06-3.39L10 7h5V2l-1.35.35z"/></svg>立即同步';
+  }
 }
 
 renderOverviewCards();
